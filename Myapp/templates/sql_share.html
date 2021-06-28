@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>sql共享工具</title>
+    <style>
+        .search_input {
+            width:20%;
+            height:32px;
+            padding-left:2px;
+        }
+        .search_button {
+            height:32px;
+            /*width:42px;*/
+            cursor:pointer;
+            position:absolute;
+        }
+    </style>
+</head>
+<body>
+    <div style="width: 90%;background-color: #f9f9f9;box-shadow: 1px 2px 5px grey;
+            margin-left: 5%;padding: 10px;
+            border:3px transparent solid;
+            border-image:linear-gradient(to right,#ff8cd0,#77a4cb,#ff8cd0,#fff5d3) 1 10;">
+        <h2 style="text-align: center">欢迎使用sql共享工具</h2>
+        <br>
+        {# 搜索功能⬇️ #}
+        <div class="search bar" style="position: absolute;top: 150px; left: 120px;width: -webkit-calc(100% - 980px)">
+            <div id="search_button"   >
+                <strong>
+                    <input class="search_input" id="search_input" placeholder="输入sql名称" name="keys" type="text" value="{{keys}}">
+                </strong>
+                <button class="search_button" id="search_submit"  onclick="search()" style="width: 100px"> <strong><font size="4">查询</font></strong> </button>
+            </div>
+        </div>
+        <br>
+        <br>
+        <br>
+        <br>
+        <button onclick="javascript:document.getElementById('add_sql_div').style.display='block'" style="margin-left: 10px" class="btn btn-primary">新增sql</button>
+        <button onclick="javascript:document.getElementById('add_sql_div').style.display='block'" style="margin-left: 10px" class="btn btn-primary">JDBC配置</button>
+        <a href="/add_case/{{ project.id }}/"><button style="margin-left: 10px" class="btn btn-primary">批量执行</button></a>
+        <br><br>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th> </th><th>id</th><th>名称</th><th>描述</th><th>所属项目</th>  <th>sql内容</th>  <th>是否分库分表</th><th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+             {% for i in sqls %}
+                 <tr>
+                    <td><input type="checkbox"></td> <td>{{ i.id }}</td><td>{{ i.sql_name }}</td> <td>{{ i.sql_des }}</td> <td>{{ i.Product }}</td> <td>{{ i.sql_content }}</td> <td>{{ i.is_handle_table }}</td>
+                     <td>
+                     <button onclick="run_sql('{{ i.id }}')" class="btn btn-success">执行</button>
+                     <button onclick="update_sql('{{ i.id }}')" class="btn btn-default">编辑</button>
+                     <button onclick="delete_sql('{{ i.id }}')" class="btn btn-danger">删除</button>
+                     </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div id="add_sql_div" style="width: 50%;background-color: white;border: 1px solid black;
+                position: absolute;left: 25%;top: 150px;padding-left: 10px;
+                box-shadow: 4px 4px 8px grey;border-radius: 5px;
+                display: none">
+        <input id="which_sql" type="text" style="display: none">
+        <h5>请输入sql名称：</h5>
+        <input id="sql_name" type="text" placeholder="请输入sql名称" style="width: 95%" >
+        <h5>请输入sql描述：</h5>
+        <input id="sql_des" type="text" placeholder="请输入sql描述" style="width: 95%">
+        <h5>请选择所属项目：</h5>
+        <select id="Product" style="width: 95%;">
+            <option value="none"> ---</option>
+            {% for i in Product %}
+            <option value="{{ i.id }}">{{ i.name }}</option>
+            {% endfor %}
+        </select>
+        <h5>请输入sql内容：</h5>
+        <textarea id="sql_content" type="text" placeholder="请输入sql内容" style="width: 95%"></textarea>
+        <h5>请选择数据库：</h5>
+        <select id="DBs" style="width: 95%;">
+            <option value="none"> ---</option>
+            {% for i in DBs %}
+            <option value="{{ i.id }}">{{ i.db_name }}</option>
+            {% endfor %}
+        </select>
+        <br><br>
+        <button onclick="javascript:document.getElementById('add_sql_div').style.display='none'" class="btn btn-danger">取消</button>
+        <button onclick="add_sql()" class="btn btn-success">确定</button>
+        <br><br>
+    </div>
+    {# 执行弹层及函数 #}
+    <div id="run_sql_div" style="width: 50%;background-color: white;border: 1px solid black;
+                position: absolute;left: 25%;top: 150px;padding-left: 10px;
+                box-shadow: 4px 4px 8px grey;border-radius: 5px;
+                display: none">
+        <!--<h5>需执行的sql：</h5>
+        <input id="which_sql" type="text" style="display: none">
+        <textarea name="" id="sql_value" style="width: 100%;height: 80%" ></textarea>-->
+        <h5>执行结果：</h5>
+        <textarea name="" id="sql_result_value" style="width: 100%;height: 80%" ></textarea>
+        <button onclick="javascript:document.getElementById('run_sql_div').style.display='none'" style="width: 100%;height: 20%">确定</button>
+    </div>
+    <script>
+        function add_sql(){
+            var id = document.getElementById("which_sql").value;
+            var sql_name = document.getElementById("sql_name").value;
+            var sql_des = document.getElementById("sql_des").value;
+            var Product = document.getElementById("Product").value;
+            var sql_content = document.getElementById("sql_content").value;
+            var DBs = document.getElementById("DBs").value;
+            $.get('/add_sql/',{
+                'id':id,
+                'sql_name':sql_name,
+                'sql_des':sql_des,
+                'Product':Product,
+                'sql_content':sql_content,
+                'DBs':DBs,
+            },function(ret){
+                document.location.reload();
+            })
+        }
+        function delete_sql(id){
+            if(confirm('确定是否要删除该sql么？') == false){return}
+            $.get('/delete_sql/',{
+                'id':id,
+            },function(ret){
+                document.location.reload();
+            })
+        }
+        function run_sql(id){
+            document.getElementById('sql_result_value').value='';
+            $.get('/run_sql/',{
+                'id':id,
+            },function(ret){
+                document.getElementById('run_sql_div').style.display='block';
+                document.getElementById('sql_result_value').value = ret;
+            })
+        }
+        function update_sql(id){
+            $.get('/get_sql/',{
+                'id':id,
+            },function(ret){
+                document.getElementById('add_sql_div').style.display='block';
+                document.getElementById('which_sql').value = id;
+                document.getElementById('sql_name').value = ret.sql_name;
+                document.getElementById('sql_des').value = ret.sql_des;
+                document.getElementById('Product').value = ret.Product_id;
+                document.getElementById('sql_content').value = ret.sql_content;
+                document.getElementById('DBs').value = ret.sql_db_id;
+            })
+        }
+    </script>
+</body>
+</html>
